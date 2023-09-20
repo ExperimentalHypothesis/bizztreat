@@ -1,3 +1,5 @@
+import aiohttp
+import asyncio
 import csv
 import logging
 
@@ -21,14 +23,34 @@ def write_to_csv(outfile: str, rows: list):
             writer.writerow(row)
 
 
+async def fetch_page(session, url: str):
+    async with session.get(url) as response:
+        if response.status == 200:
+            return await response.text(), url
+        raise Exception(f"Error fetching page {url}, status code {response.status}")
+
+
+async def get_multiple_pages(loop, urls):
+    tasks = []
+    async with aiohttp.ClientSession(loop=loop) as session:
+        for url in urls:
+            tasks.append(fetch_page(session, url))
+        return await asyncio.gather(*tasks)
+
+
 def main():
     logger.info("Scraping the BizzTreat web started. ")
+
+    loop = asyncio.get_event_loop()
+    urls = [f"https://www.bizztreat.com/bizztro?p1400={i}" for i in range(1, 10)]
+    pages = loop.run_until_complete(get_multiple_pages(loop, urls))
+
     rows = []
-    for i in range(1, 51):
-        url = f"https://www.bizztreat.com/bizztro?p1400={i}"
-        parser = Parser(url)
-        rows.extend(parser.parse())
-    write_to_csv("outfile-sync.csv", rows)
+    for page, url in pages:
+        p = Parser(page, url)
+        rows.extend(p.parse())
+    write_to_csv("outfile-async.csv", rows)
+
     logger.info("Scraping the BizzTreat web finished. ")
 
 

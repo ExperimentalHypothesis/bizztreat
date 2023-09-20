@@ -1,5 +1,5 @@
-import requests
 import logging
+import aiohttp
 from collections import namedtuple
 from bs4 import BeautifulSoup
 
@@ -9,11 +9,11 @@ logger = logging.getLogger("scape-bizz.parser")
 class Parser:
     row = namedtuple("row", ["titles", "urls", "images", "summaries"])
 
-    def __init__(self, url):
+    def __init__(self, page, url):
+        self.page = page
         self.url = url
-        self.page = requests.get(url).text
         logger.debug(f"Parser created for page `{url}`")
-        self.soup = BeautifulSoup(self.page, "html.parser")
+        self.soup = BeautifulSoup(page, "html.parser")
 
     @property
     def titles(self):
